@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
+import '../styles/Login.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -9,74 +10,183 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Usuário padrão para desenvolvimento
-  const defaultUser = {
-    email: "admin@academia.com",
-    password: "12345",
-    token: "fake-jwt-token",
-    id: "001",
-    name: "Administrador"
+  // Clear any existing auth data on mount
+  useEffect(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userType');
+  }, []);
+
+  // Default test users
+  const testUsers = {
+    admin: {
+      email: "admin@academia.com",
+      password: "12345",
+      token: "fake-admin-token",
+      id: "001",
+      name: "Administrador",
+      type: "admin"
+    },
+    user: {
+      email: "usuario@academia.com",
+      password: "12345",
+      token: "fake-user-token",
+      id: "002",
+      name: "Usuário Padrão",
+      type: "user"
+    }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (email === defaultUser.email && password === defaultUser.password) {
-      localStorage.setItem('token', defaultUser.token);
-      localStorage.setItem('user', JSON.stringify({
-        id: defaultUser.id,
-        name: defaultUser.name,
-        email: defaultUser.email
-      }));
-      navigate('/home');
-    } else {
-      setError('Credenciais inválidas! Use admin@academia.com / 12345');
+    // Offline development mode
+    if (process.env.NODE_ENV === 'development') {
+      const user = Object.values(testUsers).find(
+        u => u.email === email && u.password === password
+      );
+
+      if (user) {
+        localStorage.setItem('token', user.token);
+        localStorage.setItem('userId', user.id);
+        localStorage.setItem('user', user.name);
+        localStorage.setItem('userType', user.type);
+        navigate('/exercises');
+        return;
+      } else {
+        setError('Credenciais inválidas!');
+        return;
+      }
+    }
+
+    // Production mode - API call
+    try {
+      const response = await fetch('https://backend-ks2k.onrender.com/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.id);
+        localStorage.setItem('user', data.name || email.split('@')[0]);
+        localStorage.setItem('userType', data.userType || 'user');
+        navigate('/exercises');
+      } else {
+        setError(data.message || 'Credenciais inválidas');
+      }
+    } catch (error) {
+      setError('Erro de conexão com o servidor');
+      console.error('Login error:', error);
+    }
+  };
+
+  const handleGoogleLogin = async (credentialResponse) => {
+    try {
+      const { email, name, sub } = jwtDecode(credentialResponse.credential);
+      
+      const response = await fetch('https://backend-ks2k.onrender.com/auth/google/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          fullName: name, 
+          password: sub 
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.id);
+        localStorage.setItem('user', name || email.split('@')[0]);
+        localStorage.setItem('userType', data.userType || 'user');
+        navigate('/exercises');
+      } else {
+        setError('Falha no login com Google');
+      }
+    } catch (error) {
+      setError('Erro ao conectar com o Google');
+      console.error('Google login error:', error);
     }
   };
 
   return (
     <div className="login-container">
-      <h1>Academia Fit</h1>
-      <form onSubmit={handleLogin}>
+      <div className="login-card">
+        <div className="login-header">
+          <h1>Gym Planner</h1>
+          <p>Sua jornada fitness começa aqui</p>
+        </div>
+
         {error && <div className="error-message">{error}</div>}
-        
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Entrar</button>
-      </form>
 
-      <div className="test-credentials">
-        <p><strong>Usuário teste:</strong></p>
-        <p>Email: <code>admin@academia.com</code></p>
-        <p>Senha: <code>12345</code></p>
-      </div>
+        <form onSubmit={handleLogin} className="login-form">
+          <div className="input-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-      {/* Componente GoogleLogin agora funcionará corretamente */}
-      <div className="google-login">
-        <GoogleLogin
-          onSuccess={credentialResponse => {
-            const { email, name, sub } = jwtDecode(credentialResponse.credential);
-            localStorage.setItem('token', `google-${sub}`);
-            localStorage.setItem('user', JSON.stringify({ email, name }));
-            navigate('/home');
-          }}
-          onError={() => {
-            setError('Falha no login com Google');
-          }}
-        />
+          <div className="input-group">
+            <label htmlFor="password">Senha</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="login-button">
+            Entrar
+          </button>
+        </form>
+
+        <div className="login-divider">
+          <span>OU</span>
+        </div>
+
+        <div className="social-login">
+          <GoogleLogin
+            onSuccess={handleGoogleLogin}
+            onError={() => setError('Falha no login com Google')}
+            theme="filled_blue"
+            size="large"
+            text="signin_with"
+          />
+        </div>
+
+        <div className="login-footer">
+          {process.env.NODE_ENV === 'development' && (
+            <div className="test-credentials">
+              <h4>Usuários para teste:</h4>
+              <div className="user-credential">
+                <strong>Admin:</strong> admin@academia.com / 12345
+              </div>
+              <div className="user-credential">
+                <strong>Usuário:</strong> usuario@academia.com / 12345
+              </div>
+            </div>
+          )}
+          <a href="/forgot-password" className="forgot-password">
+            Esqueceu sua senha?
+          </a>
+        </div>
       </div>
     </div>
   );

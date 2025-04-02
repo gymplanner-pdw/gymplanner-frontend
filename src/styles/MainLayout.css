@@ -1,0 +1,333 @@
+/* Layout Structure */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: 280px;
+  background: #2c3e50;
+  color: white;
+  padding: 20px 0;
+  position: fixed;
+  height: 100%;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.sidebar-header {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid #34495e;
+  margin-bottom: 20px;
+}
+
+.sidebar-header h2 {
+  color: #ecf0f1;
+  margin: 0 0 15px;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-info .material-icons {
+  font-size: 40px;
+  color: #bdc3c7;
+}
+
+.user-name {
+  display: block;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.user-type {
+  display: block;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  width: fit-content;
+}
+
+.user-type.admin {
+  background: #3498db;
+}
+
+.user-type.user {
+  background: #2ecc71;
+}
+
+/* Navigation Menu */
+.nav-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-menu li {
+  margin: 4px 10px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  color: #ecf0f1;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.nav-link:hover {
+  background: #34495e;
+  transform: translateX(5px);
+}
+
+.nav-link.active {
+  background: #3498db;
+  font-weight: 500;
+}
+
+.nav-link .material-icons {
+  margin-right: 12px;
+  font-size: 22px;
+}
+
+/* Logout Button */
+.logout-item {
+  margin-top: auto;
+  padding: 10px;
+  border-top: 1px solid #34495e;
+}
+
+.logout-button {
+  background: none;
+  border: none;
+  color: #ecf0f1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 1rem;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.logout-button:hover {
+  background: #e74c3c;
+  transform: translateX(5px);
+}
+
+.logout-button .material-icons {
+  margin-right: 12px;
+  font-size: 22px;
+}
+
+/* Main Content Area */
+.content {
+  flex: 1;
+  margin-left: 280px;
+  padding: 30px;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 15px;
+  }
+  
+  .content {
+    margin-left: 0;
+    padding: 20px;
+  }
+  
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .logout-item {
+    margin-top: 20px;
+  }
+}
+
+/* Estilos para Users e Machines */
+.user-type {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.user-type.admin {
+  background-color: #4e73df;
+  color: white;
+}
+
+.user-type.user {
+  background-color: #1cc88a;
+  color: white;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.disponível {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.em-manutenção {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.desativada {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Estilos para tabelas */
+.list-container {
+  margin-top: 30px;
+}
+
+.list-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.list-container th {
+  background-color: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+}
+
+.list-container td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn {
+  background-color: #ffc107;
+  color: #212529;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* UserList specific styles */
+.type-select {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  font-size: 0.9rem;
+}
+
+.type-select.user {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.type-select.admin {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn {
+  background-color: #ffc107;
+  color: #212529;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.edit-btn:hover {
+  background-color: #ffab00;
+}
+
+.delete-btn {
+  background-color: #ef5350;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+.delete-btn:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
+}
+
+.list-container {
+  margin-top: 30px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.list-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.list-container th {
+  text-align: left;
+  padding: 12px;
+  background-color: #f5f5f5;
+  font-weight: 500;
+}
+
+.list-container td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}

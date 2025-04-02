@@ -309,3 +309,43 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* Estilos para Máquinas */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.disponível {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.em-manutenção {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.desativada {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Ajustes para a tabela de máquinas */
+.list-container table {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.list-container th {
+  text-align: left;
+  padding: 12px;
+  background-color: #f8f9fa;
+}
+
+.list-container td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
