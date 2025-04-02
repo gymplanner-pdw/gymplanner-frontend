@@ -1,18 +1,20 @@
-import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import Home from './pages/Home';
+import Exercises from './pages/Exercises';
+import Schedules from './pages/Schedules';
+import ProtectedRoute from './components/ProtectedRoute';
 
-function App() {
+export default function App() {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <header>
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a href="https://reactjs.org" target="_blank" rel="noopener noreferrer">
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/exercises" element={<ProtectedRoute><Exercises /></ProtectedRoute>} />
+        <Route path="/schedules" element={<ProtectedRoute><Schedules /></ProtectedRoute>} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
