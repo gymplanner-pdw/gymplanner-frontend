@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
+//import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import '../styles/Login.css';
 
@@ -10,7 +10,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Clear any existing auth data on mount
   useEffect(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -18,7 +17,6 @@ export default function Login() {
     localStorage.removeItem('userType');
   }, []);
 
-  // Default test users
   const testUsers = {
     admin: {
       email: "admin@academia.com",
@@ -42,7 +40,6 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    // Offline development mode
     if (process.env.NODE_ENV === 'development') {
       const user = Object.values(testUsers).find(
         u => u.email === email && u.password === password
@@ -61,7 +58,6 @@ export default function Login() {
       }
     }
 
-    // Production mode - API call
     try {
       const response = await fetch('https://backend-ks2k.onrender.com/auth/login', {
         method: 'POST',
@@ -157,7 +153,7 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="login-divider">
+        {/* <div className="login-divider">
           <span>OU</span>
         </div>
 
@@ -183,10 +179,8 @@ export default function Login() {
               </div>
             </div>
           )}
-          <a href="/forgot-password" className="forgot-password">
-            Esqueceu sua senha?
-          </a>
-        </div>
+        </div> */}
+        
       </div>
     </div>
   );

@@ -1,100 +1,186 @@
 import { useState, useEffect } from 'react';
-import ScheduleList from '../components/ScheduleList';
-import { fetchAllUsers } from '../services/api'; // You'll need to implement this API call
+import { mockDatabase } from '../services/mockDataBase';
+import '../styles/Schedules.css';
 
 export default function Schedules() {
   const [schedules, setSchedules] = useState([]);
   const [users, setUsers] = useState([]);
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [machines, setMachines] = useState([]);
   const [newSchedule, setNewSchedule] = useState({ 
     date: '', 
-    time: '', 
-    activity: '', 
-    client: '',
-    userId: localStorage.getItem('userId') // Default to current user
+    time: '',
+    userId: localStorage.getItem('userId'),
+    machineId: ''
   });
   const [editingId, setEditingId] = useState(null);
-  const isAdmin = localStorage.getItem('userType') === 'admin';
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [userFilter, setUserFilter] = useState('all');
+  
+  const userType = localStorage.getItem('userType');
+  const isAdmin = userType === 'admin';
+  const currentUserId = localStorage.getItem('userId');
 
   useEffect(() => {
-    // Mock users data
-    if (isAdmin) {
-      setUsers([
-        { id: '001', name: 'Admin', type: 'admin' },
-        { id: '002', name: 'Usuário Padrão', type: 'user' }
-      ]);
-    }
-    
-    loadSchedules();
-  }, [selectedUserId]);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        const allUsers = mockDatabase.users;
+        const allMachines = mockDatabase.machines || [];
+        setUsers(allUsers);
+        setMachines(allMachines);
+        
+        const allSchedules = mockDatabase.schedules.map(schedule => {
+          const user = allUsers.find(u => u.id === schedule.userId);
+          const machine = allMachines.find(m => m.id === schedule.machineId);
+          
+          return {
+            ...schedule,
+            userName: user?.name || 'Não encontrado',
+            machineName: machine?.name || 'Máquina não encontrada',
+            machineStatus: machine?.status || 'Indisponível',
+            formattedDate: formatDate(schedule.date)
+          };
+        });
 
-  const loadSchedules = () => {
-    // Replace with your actual API call
-    const mockSchedules = [
-      { id: 1, date: '2023-06-01', time: '09:00', activity: 'Musculação', client: 'João', userId: '001' },
-      { id: 2, date: '2023-06-02', time: '14:00', activity: 'Aeróbico', client: 'Maria', userId: '002' }
-    ];
-    
-    let filtered = mockSchedules;
-    if (!isAdmin) {
-      filtered = mockSchedules.filter(sched => sched.userId === localStorage.getItem('userId'));
-    } else if (selectedUserId) {
-      filtered = mockSchedules.filter(sched => sched.userId === selectedUserId);
-    }
-    
-    setSchedules(filtered);
-  };
+        let filteredSchedules = isAdmin 
+          ? allSchedules 
+          : allSchedules.filter(s => s.userId === currentUserId);
+
+        if (isAdmin && userFilter !== 'all') {
+          filteredSchedules = filteredSchedules.filter(s => s.userId === userFilter);
+        }
+
+        setSchedules(filteredSchedules);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+        setError('Falha ao carregar agendamentos');
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [currentUserId, isAdmin, userFilter]);
+
+  const availableMachines = machines.filter(machine => 
+    machine.status === 'Disponível' || machine.status === 'available'
+  );
 
   const handleAddSchedule = () => {
-    if (!newSchedule.date || !newSchedule.time || !newSchedule.activity) {
+    if (!newSchedule.date || !newSchedule.time || (!isAdmin && !newSchedule.userId) || !newSchedule.machineId) {
       alert('Preencha todos os campos obrigatórios!');
       return;
     }
 
-    const scheduleData = {
-      ...newSchedule,
-      userId: isAdmin && selectedUserId ? selectedUserId : localStorage.getItem('userId')
-    };
+    try {
+      const user = users.find(u => u.id === newSchedule.userId);
+      const machine = machines.find(m => m.id === newSchedule.machineId);
+      
+      const scheduleData = {
+        ...newSchedule,
+        id: editingId || `s${Date.now()}`,
+        userName: user?.name || 'Não encontrado',
+        machineName: machine?.name || 'Máquina não encontrada',
+        machineStatus: machine?.status || 'Indisponível',
+        formattedDate: formatDate(newSchedule.date)
+      };
 
-    if (editingId) {
-      setSchedules(schedules.map(sched => 
-        sched.id === editingId ? { ...scheduleData, id: editingId } : sched
-      ));
+      const index = mockDatabase.schedules.findIndex(s => s.id === editingId);
+      if (index !== -1) {
+        mockDatabase.schedules[index] = scheduleData;
+      } else {
+        mockDatabase.schedules.push(scheduleData);
+      }
+
+      setSchedules(prev => {
+        if (editingId) {
+          return prev.map(s => s.id === editingId ? scheduleData : s);
+        }
+        return [...prev, scheduleData];
+      });
+
+      setNewSchedule({ 
+        date: '', 
+        time: '',
+        userId: currentUserId,
+        machineId: ''
+      });
       setEditingId(null);
-    } else {
-      setSchedules([...schedules, { ...scheduleData, id: Date.now() }]);
+    } catch (err) {
+      console.error('Erro ao salvar agendamento:', err);
+      alert('Erro ao salvar agendamento');
     }
-    
-    setNewSchedule({ date: '', time: '', activity: '', client: '', userId: '' });
   };
 
   const handleEdit = (schedule) => {
-    setNewSchedule(schedule);
+    setNewSchedule({
+      date: schedule.date,
+      time: schedule.time,
+      userId: schedule.userId,
+      machineId: schedule.machineId
+    });
     setEditingId(schedule.id);
-    if (isAdmin) setSelectedUserId(schedule.userId);
   };
 
   const handleDelete = (id) => {
     if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
-      setSchedules(schedules.filter(sched => sched.id !== id));
+      mockDatabase.schedules = mockDatabase.schedules.filter(s => s.id !== id);
+      setSchedules(prev => prev.filter(s => s.id !== id));
     }
   };
 
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setNewSchedule({ 
+      date: '', 
+      time: '',
+      userId: currentUserId,
+      machineId: ''
+    });
+  };
+
+  function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  }
+
+  if (isLoading) {
+    return (
+      <div className="page-container">
+        <h1>Agendamentos</h1>
+        <p>Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="page-container">
+        <h1>Agendamentos</h1>
+        <p className="error-message">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
-      <h1>Gerenciamento de Agendamentos</h1>
-      
+      <h1>Agendamentos</h1>
+
       {isAdmin && (
-        <div className="user-filter">
-          <label>Filtrar por usuário:</label>
+        <div className="filter-container" style={{ marginBottom: '20px' }}>
+          <label>Filtrar por usuário: </label>
           <select
-            value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
+            value={userFilter}
+            onChange={(e) => setUserFilter(e.target.value)}
+            className="form-input"
           >
-            <option value="">Todos os usuários</option>
+            <option value="all">Todos os usuários</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>
-                {user.name} ({user.type === 'admin' ? 'Admin' : 'Usuário'})
+                {user.name} ({user.type})
               </option>
             ))}
           </select>
@@ -106,78 +192,140 @@ export default function Schedules() {
         
         <div className="form-grid">
           <div className="form-group">
-            <label>Data*</label>
+            <label>Data</label>
             <input
               type="date"
               value={newSchedule.date}
               onChange={(e) => setNewSchedule({...newSchedule, date: e.target.value})}
               min={new Date().toISOString().split('T')[0]}
               required
+              className="form-input"
             />
           </div>
 
           <div className="form-group">
-            <label>Hora*</label>
+            <label>Hora</label>
             <input
               type="time"
               value={newSchedule.time}
               onChange={(e) => setNewSchedule({...newSchedule, time: e.target.value})}
               required
+              className="form-input"
             />
           </div>
 
+          {isAdmin && (
+            <div className="form-group">
+              <label>Usuário</label>
+              <select
+                value={newSchedule.userId}
+                onChange={(e) => setNewSchedule({...newSchedule, userId: e.target.value})}
+                required
+                className="form-input"
+              >
+                <option value="">Selecione um usuário...</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="form-group">
-            <label>Atividade*</label>
+            <label>Máquina</label>
             <select
-              value={newSchedule.activity}
-              onChange={(e) => setNewSchedule({...newSchedule, activity: e.target.value})}
+              value={newSchedule.machineId}
+              onChange={(e) => setNewSchedule({...newSchedule, machineId: e.target.value})}
               required
+              className="form-input"
+              disabled={availableMachines.length === 0}
             >
-              <option value="">Selecione...</option>
-              <option value="Musculação">Musculação</option>
-              <option value="Aeróbico">Aeróbico</option>
-              <option value="Alongamento">Alongamento</option>
-              <option value="Avaliação Física">Avaliação Física</option>
+              <option value="">Selecione uma máquina disponível...</option>
+              {availableMachines.map(machine => (
+                <option key={machine.id} value={machine.id}>
+                  {machine.name} ({machine.type || 'Sem categoria'})
+                </option>
+              ))}
             </select>
-          </div>
-
-          <div className="form-group">
-            <label>Cliente*</label>
-            <input
-              type="text"
-              placeholder="Nome do cliente"
-              value={newSchedule.client}
-              onChange={(e) => setNewSchedule({...newSchedule, client: e.target.value})}
-              required
-            />
+            {availableMachines.length === 0 && (
+              <p className="error-message">Nenhuma máquina disponível no momento</p>
+            )}
           </div>
         </div>
 
-        <button onClick={handleAddSchedule} className="submit-btn">
-          {editingId ? 'Atualizar' : 'Agendar'}
-        </button>
-
-        {editingId && (
-          <button
-            onClick={() => {
-              setEditingId(null);
-              setNewSchedule({ date: '', time: '', activity: '', client: '', userId: '' });
-              if (isAdmin) setSelectedUserId('');
-            }}
-            className="cancel-btn"
+        <div className="form-actions">
+          <button 
+            onClick={handleAddSchedule} 
+            className="submit-btn"
           >
-            Cancelar
+            {editingId ? 'Atualizar' : 'Agendar'}
           </button>
-        )}
+
+          {editingId && (
+            <button
+              onClick={handleCancelEdit}
+              className="cancel-btn"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </div>
 
-      <ScheduleList 
-        schedules={schedules} 
-        onEdit={handleEdit} 
-        onDelete={handleDelete}
-        showUser={isAdmin && !selectedUserId}
-        users={users}
-      />
+      <div className="schedule-list-container">
+        <h2>
+          {isAdmin ? 'Todos os Agendamentos' : 'Meus Agendamentos'} 
+          ({schedules.length})
+        </h2>
+        
+        {schedules.length > 0 ? (
+          <table className="schedule-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Hora</th>
+                {isAdmin && <th>Usuário</th>}
+                <th>Máquina</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {schedules.map(schedule => (
+                <tr key={schedule.id}>
+                  <td>{schedule.formattedDate}</td>
+                  <td>{schedule.time}</td>
+                  {isAdmin && <td>{schedule.userName}</td>}
+                  <td>{schedule.machineName}</td>
+                  <td>{schedule.machineStatus}</td>
+                  <td className="actions">
+                    <button 
+                      onClick={() => handleEdit(schedule)}
+                      className="edit-btn"
+                    >
+                      Editar
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(schedule.id)}
+                      className="delete-btn"
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="no-results">
+            {isAdmin
+              ? 'Nenhum agendamento cadastrado'
+              : 'Você não possui agendamentos cadastrados'}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

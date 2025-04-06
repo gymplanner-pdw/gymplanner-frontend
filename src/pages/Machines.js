@@ -1,179 +1,185 @@
 import { useState, useEffect } from 'react';
+import { mockDatabase } from '../services/mockDataBase';
+import '../styles/Machines.css';
 
 export default function Machines() {
   const [machines, setMachines] = useState([]);
-  const [newMachine, setNewMachine] = useState({ 
-    name: '', 
+  const [newMachine, setNewMachine] = useState({
+    name: '',
     category: '',
     status: 'Disponível',
     lastMaintenance: new Date().toISOString().split('T')[0]
   });
-  const [editingId, setEditingId] = useState(null);
+  const [editingMachine, setEditingMachine] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('Todas');
+  const isAdmin = localStorage.getItem('userType') === 'admin';
 
-  // Mock data - substitua por API real
   useEffect(() => {
-    const mockMachines = [
-      { id: 1, name: 'Leg Press', category: 'Pernas', status: 'Disponível', lastMaintenance: '2023-05-01' },
-      { id: 2, name: 'Supino Máquina', category: 'Peito', status: 'Em manutenção', lastMaintenance: '2023-04-15' }
-    ];
-    setMachines(mockMachines);
+    setMachines(mockDatabase.machines);
   }, []);
 
   const handleAddMachine = () => {
-    if (!newMachine.name || !newMachine.category) {
-      alert('Preencha todos os campos obrigatórios!');
-      return;
-    }
-
-    if (editingId) {
-      setMachines(machines.map(machine => 
-        machine.id === editingId ? { ...newMachine, id: editingId } : machine
-      ));
+    const machineToAdd = {
+      ...newMachine,
+      id: editingMachine?.id || `m${Date.now()}`
+    };
+    
+    if (editingMachine) {
+      const index = mockDatabase.machines.findIndex(m => m.id === editingMachine.id);
+      mockDatabase.machines[index] = machineToAdd;
     } else {
-      setMachines([...machines, { ...newMachine, id: Date.now() }]);
+      mockDatabase.machines.push(machineToAdd);
     }
+    
+    setMachines([...mockDatabase.machines]);
+    resetForm();
+  };
 
-    setNewMachine({ 
-      name: '', 
+  const handleEditMachine = (machine) => {
+    setEditingMachine(machine);
+    setNewMachine({
+      name: machine.name,
+      category: machine.category,
+      status: machine.status,
+      lastMaintenance: machine.lastMaintenance || new Date().toISOString().split('T')[0]
+    });
+  };
+
+  const resetForm = () => {
+    setNewMachine({
+      name: '',
       category: '',
       status: 'Disponível',
       lastMaintenance: new Date().toISOString().split('T')[0]
     });
-    setEditingId(null);
+    setEditingMachine(null);
   };
 
-  const handleEdit = (machine) => {
-    setNewMachine(machine);
-    setEditingId(machine.id);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta máquina?')) {
-      setMachines(machines.filter(machine => machine.id !== id));
+  const filterMachines = (status) => {
+    setActiveFilter(status);
+    if (status === 'Todas') {
+      setMachines(mockDatabase.machines);
+    } else {
+      setMachines(mockDatabase.machines.filter(m => m.status === status));
     }
   };
 
   return (
     <div className="page-container">
-      <h1>Gerenciamento de Máquinas</h1>
-      
-      <div className="form-container">
-        <h2>{editingId ? 'Editar' : 'Adicionar'} Máquina</h2>
-        
-        <div className="form-grid">
+      <div className="page-header">
+        <h1>Gerenciamento de Máquinas</h1>
+        <h2>{editingMachine ? 'Editar Máquina' : 'Adicionar Máquina'}</h2>
+      </div>
+      {isAdmin && (
+        <div className="form-container">
           <div className="form-group">
-            <label>Nome*</label>
+            <label>Nome:</label>
             <input
-              type="text"
-              placeholder="Nome da máquina"
               value={newMachine.name}
               onChange={(e) => setNewMachine({...newMachine, name: e.target.value})}
-              required
+              placeholder="Nome da máquina"
             />
           </div>
-
+          
           <div className="form-group">
-            <label>Categoria*</label>
+            <label>Categoria:</label>
             <select
               value={newMachine.category}
               onChange={(e) => setNewMachine({...newMachine, category: e.target.value})}
-              required
             >
-              <option value="">Selecione...</option>
-              <option value="Pernas">Pernas</option>
+              <option value="">Selecione a Categoria</option>
               <option value="Peito">Peito</option>
+              <option value="Pernas">Pernas</option>
               <option value="Costas">Costas</option>
               <option value="Braços">Braços</option>
-              <option value="Abdômen">Abdômen</option>
-              <option value="Cardio">Cardio</option>
             </select>
           </div>
-
+          
           <div className="form-group">
-            <label>Status</label>
+            <label>Status:</label>
             <select
               value={newMachine.status}
               onChange={(e) => setNewMachine({...newMachine, status: e.target.value})}
             >
               <option value="Disponível">Disponível</option>
-              <option value="Em manutenção">Em manutenção</option>
-              <option value="Desativada">Desativada</option>
+              <option value="Manutenção">Manutenção</option>
+              <option value="Indisponível">Indisponível</option>
             </select>
           </div>
-
+          
           <div className="form-group">
-            <label>Última Manutenção</label>
+            <label>Última Manutenção:</label>
             <input
               type="date"
               value={newMachine.lastMaintenance}
               onChange={(e) => setNewMachine({...newMachine, lastMaintenance: e.target.value})}
             />
           </div>
+          
+          <div className="form-actions">
+            <button onClick={handleAddMachine} className="save-btn">
+              {editingMachine ? 'Atualizar' : 'Adicionar'}
+            </button>
+            {editingMachine && (
+              <button onClick={resetForm} className="cancel-btn">
+                Cancelar
+              </button>
+            )}
+          </div>
         </div>
-
-        <button onClick={handleAddMachine} className="submit-btn">
-          {editingId ? 'Atualizar' : 'Adicionar'} Máquina
-        </button>
-
-        {editingId && (
-          <button
-            onClick={() => {
-              setEditingId(null);
-              setNewMachine({ 
-                name: '', 
-                category: '',
-                status: 'Disponível',
-                lastMaintenance: new Date().toISOString().split('T')[0]
-              });
-            }}
-            className="cancel-btn"
+      )}
+      
+      <div className="machine-list">
+        <h2>Máquinas</h2>
+        
+        <div className="status-filters">
+          <button 
+            onClick={() => filterMachines('Todas')}
+            className={activeFilter === 'Todas' ? 'active' : ''}
           >
-            Cancelar
+            Todas
           </button>
-        )}
-      </div>
-
-      <div className="list-container">
-        <h2>Lista de Máquinas</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Categoria</th>
-              <th>Status</th>
-              <th>Última Manutenção</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {machines.map(machine => (
-              <tr key={machine.id}>
-                <td>{machine.name}</td>
-                <td>{machine.category}</td>
-                <td>
-                  <span className={`status-badge ${machine.status.replace(/\s/g, '-').toLowerCase()}`}>
-                    {machine.status}
-                  </span>
-                </td>
-                <td>{new Date(machine.lastMaintenance).toLocaleDateString('pt-BR')}</td>
-                <td>
-                  <button 
-                    onClick={() => handleEdit(machine)}
-                    className="edit-btn"
-                  >
-                    Editar
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(machine.id)}
-                    className="delete-btn"
-                  >
-                    Excluir
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <button 
+            onClick={() => filterMachines('Disponível')}
+            className={activeFilter === 'Disponível' ? 'active' : ''}
+          >
+            Disponíveis
+          </button>
+          <button 
+            onClick={() => filterMachines('Manutenção')}
+            className={activeFilter === 'Manutenção' ? 'active' : ''}
+          >
+            Em Manutenção
+          </button>
+          <button 
+            onClick={() => filterMachines('Indisponível')}
+            className={activeFilter === 'Indisponível' ? 'active' : ''}
+          >
+            Indisponíveis
+          </button>
+        </div>
+        
+        {machines.map(machine => (
+          <div key={machine.id} className="machine-card">
+            <div className="machine-header">
+              <h3>{machine.name} <span className={`status-badge ${machine.status.toLowerCase()}`}>{machine.status}</span></h3>
+              {isAdmin && (
+                <button 
+                  onClick={() => handleEditMachine(machine)}
+                  className="edit-btn"
+                >
+                  Editar
+                </button>
+              )}
+            </div>
+            <p>Categoria: {machine.category}</p>
+            <p>Última manutenção: {
+              machine.lastMaintenance && !isNaN(new Date(machine.lastMaintenance))
+                ? new Date(machine.lastMaintenance).toLocaleDateString('pt-BR')
+                : 'Nunca'
+            }</p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import '../styles/MainLayout.css';
 
@@ -9,19 +10,19 @@ export default function MainLayout() {
 
   const handleLogout = () => {
     if (window.confirm('Tem certeza que deseja sair?')) {
-      // Clear all auth data
+
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
       
-      // Redirect to login and reload to clear state
+
       navigate('/login');
       window.location.reload();
     }
   };
 
-  // Check if current route is active
+
   const isActive = (path) => location.pathname.includes(path);
 
   return (
@@ -45,8 +46,8 @@ export default function MainLayout() {
             {/* Common routes for all users */}
             <li>
               <Link 
-                to="/exercises" 
-                className={`nav-link ${isActive('exercises') ? 'active' : ''}`}
+                to="/workouts" 
+                className={`nav-link ${isActive('workouts') ? 'active' : ''}`}
               >
                 <span className="material-icons">fitness_center</span>
                 Exercícios

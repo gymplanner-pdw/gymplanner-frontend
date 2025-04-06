@@ -1,3 +1,5 @@
+import React from 'react';
+
 export default function ExerciseList({ exercises, onEdit, onDelete }) {
     return (
       <div className="list-container">

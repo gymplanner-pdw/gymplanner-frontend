@@ -1,3 +1,5 @@
+import React from 'react';
+
 export default function MachineList({ machines, onEdit, onDelete }) {
     return (
       <div className="list-container">

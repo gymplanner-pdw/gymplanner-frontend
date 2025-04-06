@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 
 export default function UserList({ users, onEdit, onDelete, onUserTypeChange }) {
@@ -33,7 +34,7 @@ export default function UserList({ users, onEdit, onDelete, onUserTypeChange }) 
                   value={user.type}
                   onChange={(e) => handleTypeChange(user.id, e.target.value)}
                   className={`type-select ${user.type}`}
-                  disabled={user.email === 'admin@academia.com'} // Não permite mudar o admin principal
+                  disabled={user.email === 'admin@academia.com'}
                 >
                   <option value="user">Usuário</option>
                   <option value="admin">Administrador</option>
@@ -49,7 +50,7 @@ export default function UserList({ users, onEdit, onDelete, onUserTypeChange }) 
                 <button 
                   onClick={() => onDelete(user.id)}
                   className="delete-btn"
-                  disabled={user.email === 'admin@academia.com'} // Não permite deletar o admin principal
+                  disabled={user.email === 'admin@academia.com'}
                 >
                   Excluir
                 </button>

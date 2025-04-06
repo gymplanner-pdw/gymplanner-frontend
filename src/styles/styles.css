@@ -1,4 +1,4 @@
-/* Reset básico */
+
 * {
   margin: 0;
   padding: 0;
@@ -6,61 +6,7 @@
   font-family: 'Arial', sans-serif;
 }
 
-/* Login */
-.login-container {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
 
-.login-container input {
-  width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.login-container button {
-  width: 100%;
-  padding: 12px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 1rem;
-}
-
-.divider {
-  margin: 1.5rem 0;
-  color: #777;
-  position: relative;
-}
-
-.divider::before, .divider::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 45%;
-  height: 1px;
-  background: #ddd;
-}
-
-.divider::before { left: 0; }
-.divider::after { right: 0; }
-
-.test-credentials {
-  margin-top: 1.5rem;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-/* Home */
 .home-content {
   max-width: 800px;
   margin: 2rem auto;
@@ -104,7 +50,7 @@
   justify-content: center;
 }
 
-/* Estilos para o menu principal */
+
 .home-menu {
   padding: 2rem;
   text-align: center;
@@ -132,7 +78,6 @@
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-/* Estilos para as páginas de CRUD */
 .page-container {
   padding: 2rem;
 }
@@ -170,132 +115,7 @@ button {
   cursor: pointer;
 }
 
-/* Estilos específicos para agendamentos */
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
 
-.form-group label {
-  font-weight: bold;
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.edit-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-}
-
-.delete-btn {
-  background-color: #f44336;
-  color: white;
-  border: none;
-}
-
-.submit-btn {
-  background-color: #2196F3;
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  grid-column: 1 / -1;
-  margin-top: 10px;
-}
-
-.submit-btn:hover {
-  background-color: #0b7dda;
-}
-
-/* Estilos específicos para Schedules */
-.page-container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.crud-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  gap: 15px;
-}
-
-.back-button {
-  padding: 8px 15px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.filter-input {
-  flex-grow: 1;
-  max-width: 400px;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.form-container {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-  margin: 20px 0;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  margin-bottom: 5px;
-  font-weight: 600;
-  color: #495057;
-}
-
-.form-group input, 
-.form-group select {
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-}
-
-.submit-btn {
-  background-color: #28a745;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 10px;
-}
-
-.cancel-btn {
-  background-color: #dc3545;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-/* Responsividade */
 @media (max-width: 768px) {
   .crud-actions {
     flex-direction: column;
@@ -308,44 +128,4 @@ button {
   .form-grid {
     grid-template-columns: 1fr;
   }
-}
-
-/* Estilos para Máquinas */
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.status-badge.disponível {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-badge.em-manutenção {
-  background-color: #fff3cd;
-  color: #856404;
-}
-
-.status-badge.desativada {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-/* Ajustes para a tabela de máquinas */
-.list-container table {
-  width: 100%;
-  margin-top: 20px;
-}
-
-.list-container th {
-  text-align: left;
-  padding: 12px;
-  background-color: #f8f9fa;
-}
-
-.list-container td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
 }
