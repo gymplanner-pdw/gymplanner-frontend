@@ -45,6 +45,22 @@ export default function Machines() {
     });
   };
 
+  // Adicione esta função no seu componente Machines
+const handleDeleteMachine = (machineId) => {
+  if (window.confirm('Tem certeza que deseja excluir esta máquina? Todos os agendamentos e exercícios associados serão removidos.')) {
+    // Chame a função do mockDatabase
+    mockDatabase.deleteMachine(machineId);
+    
+    // Atualize o estado local
+    setMachines(mockDatabase.machines);
+    
+    // Se estiver editando a máquina que está sendo deletada, limpe o formulário
+    if (editingMachine?.id === machineId) {
+      resetForm();
+    }
+  }
+};
+
   const resetForm = () => {
     setNewMachine({
       name: '',
@@ -164,12 +180,20 @@ export default function Machines() {
             <div className="machine-header">
               <h3>{machine.name} <span className={`status-badge ${machine.status.toLowerCase()}`}>{machine.status}</span></h3>
               {isAdmin && (
-                <button 
-                  onClick={() => handleEditMachine(machine)}
-                  className="edit-btn"
-                >
-                  Editar
-                </button>
+                <div className="machine-actions">
+                  <button 
+                    onClick={() => handleEditMachine(machine)}
+                    className="edit-btn"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDeleteMachine(machine.id)}
+                    className="delete-btn"
+                  >
+                    Excluir
+                  </button>
+                </div>
               )}
             </div>
             <p>Categoria: {machine.category}</p>

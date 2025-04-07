@@ -60,6 +60,14 @@ export const mockDatabase = {
     getUserWorkouts(userId) {
         return this.workouts.filter(workout => workout.userId === userId);
       },
+    
+    deleteMachine(machineId) {
+      this.machines = this.machines.filter(machine => machine.id !== machineId);
+      this.schedules = this.schedules.filter(schedule => schedule.machineId !== machineId);
+      this.workouts.forEach(workout => {
+        workout.exercises = workout.exercises.filter(ex => ex.machineId !== machineId);
+      });
+    },
       
     getMachineSchedules(machineId) {
       return this.schedules.filter(schedule => schedule.machineId === machineId);
