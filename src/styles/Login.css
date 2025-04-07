@@ -1,0 +1,163 @@
+:root {
+  --primary-gradient: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --text-dark: #2c3e50;
+  --text-light: #7f8c8d;
+  --success-color: #2ecc71;
+  --success-hover: #27ae60;
+  --error-bg: #ffebee;
+  --error-text: #c62828;
+  --border-color: #ddd;
+  --focus-color: #3498db;
+  --divider-color: #ecf0f1;
+  --link-color: #3498db;
+  --link-hover: #2980b9;
+  --test-bg: #f8f9fa;
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--primary-gradient);
+  padding: 20px;
+  
+}
+
+.login-card {
+  background: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  backdrop-filter: blur(10px);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-logo {
+  height: 80px;
+  margin-bottom: 15px;
+}
+
+.login-header h1 {
+  color: var(--text-dark);
+  margin: 0;
+  font-size: 2rem;
+}
+
+.login-header p {
+  color: var(--text-light);
+  margin: 5px 0 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group label {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.9rem;
+}
+
+.input-group input {
+  padding: 12px 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border 0.3s;
+}
+
+.input-group input:focus {
+  border-color: var(--focus-color);
+  outline: none;
+}
+
+.login-button {
+  background: var(--success-color);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.login-button:hover {
+  background: var(--success-hover);
+}
+
+.forgot-password {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.forgot-password:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  margin: 25px 0;
+  color: var(--text-light);
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.login-divider span {
+  padding: 0 15px;
+}
+
+.error-message {
+  background: var(--error-bg);
+  color: var(--error-text);
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.test-credentials {
+  background: var(--test-bg);
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.test-credentials p {
+  margin: 5px 0;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 20px;
+  }
+  
+  .login-header h1 {
+    font-size: 1.8rem;
+  }
+}
