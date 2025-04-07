@@ -50,7 +50,7 @@ export default function MainLayout() {
                 className={`nav-link ${isActive('workouts') ? 'active' : ''}`}
               >
                 <span className="material-icons">fitness_center</span>
-                Exercícios
+                Treinos
               </Link>
             </li>
             <li>
