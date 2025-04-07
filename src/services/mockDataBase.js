@@ -52,6 +52,11 @@ export const mockDatabase = {
           },
     ],
   
+    deleteWorkout(workoutId) {
+      this.workouts = this.workouts.filter(workout => workout.id !== workoutId);
+      this.schedules = this.schedules.filter(schedule => schedule.workoutId !== workoutId);
+    },
+
     getUserWorkouts(userId) {
         return this.workouts.filter(workout => workout.userId === userId);
       },
@@ -94,6 +99,8 @@ export const mockDatabase = {
         }));
       }
   };
+
+  
   
   export const saveSchedule = (newSchedule) => {
     mockDatabase.schedules.push({

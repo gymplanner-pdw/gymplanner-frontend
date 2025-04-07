@@ -101,6 +101,23 @@ export default function Workouts() {
     setEditingWorkoutId(null);
   };
 
+// Adicione esta função no seu componente Workouts
+const handleDeleteWorkout = (workoutId) => {
+  if (window.confirm('Tem certeza que deseja excluir este treino?')) {
+    // Chame a função do mockDatabase
+    mockDatabase.workouts = mockDatabase.workouts.filter(w => w.id !== workoutId);
+    
+    // Atualize o estado local
+    setWorkouts(prev => prev.filter(w => w.id !== workoutId));
+    
+    // Se estiver editando o workout que está sendo deletado, limpe o formulário
+    if (editingWorkoutId === workoutId) {
+      setNewWorkout({ name: '', exercises: [] });
+      setEditingWorkoutId(null);
+    }
+  }
+};
+
   const handleEditWorkout = (workout) => {
     setNewWorkout(workout);
     setEditingWorkoutId(workout.id);
@@ -184,14 +201,24 @@ export default function Workouts() {
               <div className="workout-header">
                 <h3>{workout.name}</h3>
                 
-                {editingWorkoutId !== workout.id && (
-                  <button 
-                    onClick={() => handleEditWorkout(workout)}
-                    className="edit-btn"
-                  >
-                    Editar
-                  </button>
-                )}
+                <div className="workout-actions">
+                  {editingWorkoutId !== workout.id && (
+                    <>
+                      <button 
+                        onClick={() => handleEditWorkout(workout)}
+                        className="edit-btn"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteWorkout(workout.id)}
+                        className="delete-btn"
+                      >
+                        Excluir
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
               
               <div className="exercises-list">
