@@ -1,272 +1,189 @@
 import { useState, useEffect } from 'react';
-import { mockDatabase } from '../services/mockDataBase';
+import { useNavigate } from 'react-router-dom';
 import '../styles/Schedules.css';
+import api from '../services/api';
 
 export default function Schedules() {
-  const [schedules, setSchedules] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [machines, setMachines] = useState([]);
-  const [newSchedule, setNewSchedule] = useState({ 
-    date: '', 
-    time: '',
-    userId: localStorage.getItem('userId'),
-    machineId: ''
+  const [agendamentos, setAgendamentos] = useState([]);
+  const [maquinas, setMaquinas] = useState([]);
+  const [novoAgendamento, setNovoAgendamento] = useState({
+    id_maquina: '',
+    data_inicio: '',
+    data_fim: ''
   });
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [userFilter, setUserFilter] = useState('all');
-  
-  const userType = localStorage.getItem('userType');
-  const isAdmin = userType === 'admin';
-  const currentUserId = localStorage.getItem('userId');
+  const [filter, setFilter] = useState('todos');
+  const navigate = useNavigate();
+  const isAdmin = localStorage.getItem('userType') === 'admin';
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchData = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
+        const [agendamentosRes, maquinasRes] = await Promise.all([
+          api.get('/agendamentos'),
+          api.get('/machines')
+        ]);
         
-        const allUsers = mockDatabase.users;
-        const allMachines = mockDatabase.machines || [];
-        setUsers(allUsers);
-        setMachines(allMachines);
-        
-        const allSchedules = mockDatabase.schedules.map(schedule => {
-          const user = allUsers.find(u => u.id === schedule.userId);
-          const machine = allMachines.find(m => m.id === schedule.machineId);
-          
-          return {
-            ...schedule,
-            userName: user?.name || 'Não encontrado',
-            machineName: machine?.name || 'Máquina não encontrada',
-            machineStatus: machine?.status || 'Indisponível',
-            formattedDate: formatDate(schedule.date)
-          };
-        });
-
-        let filteredSchedules = isAdmin 
-          ? allSchedules 
-          : allSchedules.filter(s => s.userId === currentUserId);
-
-        if (isAdmin && userFilter !== 'all') {
-          filteredSchedules = filteredSchedules.filter(s => s.userId === userFilter);
-        }
-
-        setSchedules(filteredSchedules);
-        setIsLoading(false);
+        setAgendamentos(agendamentosRes.data);
+        setMaquinas(maquinasRes.data.filter(m => m.status === 'disponivel'));
       } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        setError('Falha ao carregar agendamentos');
+        setError(err.response?.data?.message || err.message);
+      } finally {
         setIsLoading(false);
       }
     };
 
-    loadData();
-  }, [currentUserId, isAdmin, userFilter]);
+    fetchData();
+  }, []);
 
-  const availableMachines = machines.filter(machine => 
-    machine.status === 'Disponível' || machine.status === 'available'
-  );
+  const filteredAgendamentos = agendamentos.filter(agendamento => {
+    const hoje = new Date();
+    const dataFim = new Date(agendamento.data_fim);
+    
+    if (filter === 'ativos') return dataFim >= hoje;
+    if (filter === 'passados') return dataFim < hoje;
+    return true;
+  });
 
-  const handleAddSchedule = () => {
-    if (!newSchedule.date || !newSchedule.time || (!isAdmin && !newSchedule.userId) || !newSchedule.machineId) {
+  const handleCreateOrUpdateAgendamento = async () => {
+    if (!novoAgendamento.id_maquina || !novoAgendamento.data_inicio || !novoAgendamento.data_fim) {
       alert('Preencha todos os campos obrigatórios!');
       return;
     }
 
+    setIsLoading(true);
     try {
-      const user = users.find(u => u.id === newSchedule.userId);
-      const machine = machines.find(m => m.id === newSchedule.machineId);
-      
-      const scheduleData = {
-        ...newSchedule,
-        id: editingId || `s${Date.now()}`,
-        userName: user?.name || 'Não encontrado',
-        machineName: machine?.name || 'Máquina não encontrada',
-        machineStatus: machine?.status || 'Indisponível',
-        formattedDate: formatDate(newSchedule.date)
-      };
-
-      const index = mockDatabase.schedules.findIndex(s => s.id === editingId);
-      if (index !== -1) {
-        mockDatabase.schedules[index] = scheduleData;
+      if (editingId) {
+        await api.put(`/agendamentos/${editingId}`, {
+          data_inicio: novoAgendamento.data_inicio,
+          data_fim: novoAgendamento.data_fim
+        });
       } else {
-        mockDatabase.schedules.push(scheduleData);
+        await api.post('/agendamentos', novoAgendamento);
       }
 
-      setSchedules(prev => {
-        if (editingId) {
-          return prev.map(s => s.id === editingId ? scheduleData : s);
-        }
-        return [...prev, scheduleData];
-      });
-
-      setNewSchedule({ 
-        date: '', 
-        time: '',
-        userId: currentUserId,
-        machineId: ''
-      });
-      setEditingId(null);
+      const response = await api.get('/agendamentos');
+      setAgendamentos(response.data);
+      resetForm();
     } catch (err) {
-      console.error('Erro ao salvar agendamento:', err);
-      alert('Erro ao salvar agendamento');
+      setError(err.response?.data?.message || err.message);
+      alert(err.response?.data?.message || 'Erro ao salvar agendamento');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleEdit = (schedule) => {
-    setNewSchedule({
-      date: schedule.date,
-      time: schedule.time,
-      userId: schedule.userId,
-      machineId: schedule.machineId
+  const handleDeleteAgendamento = async (id) => {
+    if (window.confirm('Tem certeza que deseja cancelar este agendamento?')) {
+      setIsLoading(true);
+      try {
+        await api.delete(`/agendamentos/${id}`);
+        setAgendamentos(agendamentos.filter(a => a.id !== id));
+      } catch (err) {
+        setError(err.response?.data?.message || err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleEditAgendamento = (agendamento) => {
+    setNovoAgendamento({
+      id_maquina: agendamento.id_maquina,
+      data_inicio: agendamento.data_inicio.split('.')[0],
+      data_fim: agendamento.data_fim.split('.')[0]
     });
-    setEditingId(schedule.id);
+    setEditingId(agendamento.id);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
-      mockDatabase.schedules = mockDatabase.schedules.filter(s => s.id !== id);
-      setSchedules(prev => prev.filter(s => s.id !== id));
-    }
-  };
-
-  const handleCancelEdit = () => {
+  const resetForm = () => {
+    setNovoAgendamento({
+      id_maquina: '',
+      data_inicio: '',
+      data_fim: ''
+    });
     setEditingId(null);
-    setNewSchedule({ 
-      date: '', 
-      time: '',
-      userId: currentUserId,
-      machineId: ''
-    });
   };
 
-  function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  }
+  const formatDateTime = (dateTimeString) => {
+    const options = { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit'
+    };
+    return new Date(dateTimeString).toLocaleString('pt-BR', options);
+  };
 
-  if (isLoading) {
-    return (
-      <div className="page-container">
-        <h1>Agendamentos</h1>
-        <p>Carregando...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="page-container">
-        <h1>Agendamentos</h1>
-        <p className="error-message">{error}</p>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="loading">Carregando...</div>;
+  if (error) return <div className="error">Erro: {error}</div>;
 
   return (
-    <div className="page-container">
-      <h1>Agendamentos</h1>
+    <div className="schedules-container">
+      <h1>Gerenciamento de Agendamentos</h1>
 
-      {isAdmin && (
-        <div className="filter-container" style={{ marginBottom: '20px' }}>
-          <label>Filtrar por usuário: </label>
-          <select
-            value={userFilter}
-            onChange={(e) => setUserFilter(e.target.value)}
-            className="form-input"
-          >
-            <option value="all">Todos os usuários</option>
-            {users.map(user => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.type})
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      
-      <div className="form-container">
-        <h2>{editingId ? 'Editar' : 'Adicionar'} Agendamento</h2>
+      <div className="schedule-form">
+        <h2>{editingId ? 'Editar' : 'Novo'} Agendamento</h2>
         
         <div className="form-grid">
           <div className="form-group">
-            <label>Data</label>
-            <input
-              type="date"
-              value={newSchedule.date}
-              onChange={(e) => setNewSchedule({...newSchedule, date: e.target.value})}
-              min={new Date().toISOString().split('T')[0]}
-              required
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Hora</label>
-            <input
-              type="time"
-              value={newSchedule.time}
-              onChange={(e) => setNewSchedule({...newSchedule, time: e.target.value})}
-              required
-              className="form-input"
-            />
-          </div>
-
-          {isAdmin && (
-            <div className="form-group">
-              <label>Usuário</label>
-              <select
-                value={newSchedule.userId}
-                onChange={(e) => setNewSchedule({...newSchedule, userId: e.target.value})}
-                required
-                className="form-input"
-              >
-                <option value="">Selecione um usuário...</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} ({user.type})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="form-group">
-            <label>Máquina</label>
+            <label>Máquina*</label>
             <select
-              value={newSchedule.machineId}
-              onChange={(e) => setNewSchedule({...newSchedule, machineId: e.target.value})}
+              value={novoAgendamento.id_maquina}
+              onChange={(e) => setNovoAgendamento({...novoAgendamento, id_maquina: e.target.value})}
               required
-              className="form-input"
-              disabled={availableMachines.length === 0}
+              disabled={isLoading || editingId}
             >
-              <option value="">Selecione uma máquina disponível...</option>
-              {availableMachines.map(machine => (
-                <option key={machine.id} value={machine.id}>
-                  {machine.name} ({machine.type || 'Sem categoria'})
+              <option value="">Selecione uma máquina</option>
+              {maquinas.map(maquina => (
+                <option key={maquina.id} value={maquina.id}>
+                  {maquina.nome} ({maquina.grupo_muscular})
                 </option>
               ))}
             </select>
-            {availableMachines.length === 0 && (
-              <p className="error-message">Nenhuma máquina disponível no momento</p>
-            )}
+          </div>
+
+          <div className="form-group">
+            <label>Data/Hora Início*</label>
+            <input
+              type="datetime-local"
+              value={novoAgendamento.data_inicio}
+              onChange={(e) => setNovoAgendamento({...novoAgendamento, data_inicio: e.target.value})}
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Data/Hora Fim*</label>
+            <input
+              type="datetime-local"
+              value={novoAgendamento.data_fim}
+              onChange={(e) => setNovoAgendamento({...novoAgendamento, data_fim: e.target.value})}
+              required
+              disabled={isLoading}
+            />
           </div>
         </div>
 
         <div className="form-actions">
-          <button 
-            onClick={handleAddSchedule} 
+          <button
+            onClick={handleCreateOrUpdateAgendamento}
             className="submit-btn"
+            disabled={isLoading}
           >
             {editingId ? 'Atualizar' : 'Agendar'}
           </button>
 
           {editingId && (
             <button
-              onClick={handleCancelEdit}
+              onClick={resetForm}
               className="cancel-btn"
+              disabled={isLoading}
             >
               Cancelar
             </button>
@@ -274,56 +191,67 @@ export default function Schedules() {
         </div>
       </div>
 
-      <div className="schedule-list-container">
-        <h2>
-          {isAdmin ? 'Todos os Agendamentos' : 'Meus Agendamentos'} 
-          ({schedules.length})
-        </h2>
-        
-        {schedules.length > 0 ? (
-          <table className="schedule-table">
+      <div className="schedule-list">
+        <div className="filter-controls">
+          <h2>Meus Agendamentos ({filteredAgendamentos.length})</h2>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            disabled={isLoading}
+          >
+            <option value="todos">Todos</option>
+            <option value="ativos">Ativos</option>
+            <option value="passados">Passados</option>
+          </select>
+        </div>
+
+        {filteredAgendamentos.length > 0 ? (
+          <table>
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Hora</th>
-                {isAdmin && <th>Usuário</th>}
                 <th>Máquina</th>
+                <th>Início</th>
+                <th>Fim</th>
                 <th>Status</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {schedules.map(schedule => (
-                <tr key={schedule.id}>
-                  <td>{schedule.formattedDate}</td>
-                  <td>{schedule.time}</td>
-                  {isAdmin && <td>{schedule.userName}</td>}
-                  <td>{schedule.machineName}</td>
-                  <td>{schedule.machineStatus}</td>
-                  <td className="actions">
-                    <button 
-                      onClick={() => handleEdit(schedule)}
-                      className="edit-btn"
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(schedule.id)}
-                      className="delete-btn"
-                    >
-                      Excluir
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredAgendamentos.map(agendamento => {
+                const maquina = maquinas.find(m => m.id === agendamento.id_maquina);
+                const hoje = new Date();
+                const dataFim = new Date(agendamento.data_fim);
+                const status = dataFim >= hoje ? 'Ativo' : 'Concluído';
+
+                return (
+                  <tr key={agendamento.id}>
+                    <td>{maquina?.nome || 'Máquina não encontrada'}</td>
+                    <td>{formatDateTime(agendamento.data_inicio)}</td>
+                    <td>{formatDateTime(agendamento.data_fim)}</td>
+                    <td className={`status ${status.toLowerCase()}`}>{status}</td>
+                    <td className="actions">
+                      <button
+                        onClick={() => handleEditAgendamento(agendamento)}
+                        className="edit-btn"
+                        disabled={isLoading || status === 'Concluído'}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAgendamento(agendamento.id)}
+                        className="delete-btn"
+                        disabled={isLoading}
+                      >
+                        Cancelar
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : (
-          <p className="no-results">
-            {isAdmin
-              ? 'Nenhum agendamento cadastrado'
-              : 'Você não possui agendamentos cadastrados'}
-          </p>
+          <p className="no-schedules">Nenhum agendamento encontrado</p>
         )}
       </div>
     </div>

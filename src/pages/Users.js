@@ -1,84 +1,129 @@
 import { useState, useEffect } from 'react';
-import { mockDatabase } from '../services/mockDataBase';
 import '../styles/Users.css';
+import api from '../services/api';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    password: '',
-    type: 'user'
+    nome: '',
+    senha: '',
+    tipo_usuario: 'usuario'
   });
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const currentUserType = localStorage.getItem('userType');
 
   useEffect(() => {
-    setUsers(mockDatabase.users);
-  }, []);
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get('/users');
+        setUsers(response.data);
+      } catch (err) {
+        setError(err.response?.data?.message || err.message);
+        console.error('Error fetching users:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (currentUserType === 'admin') {
+      fetchUsers();
+    }
+  }, [currentUserType]);
 
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddUser = () => {
-    if (!newUser.name || !newUser.email || !newUser.password) {
+  const handleAddUser = async () => {
+    if (!newUser.nome || !newUser.senha) {
       alert('Preencha todos os campos obrigatórios!');
       return;
     }
 
-    if (editingId) {
-      const updatedUsers = users.map(user =>
-        user.id === editingId ? { ...newUser, id: editingId } : user
-      );
-      setUsers(updatedUsers);
-      mockDatabase.users = updatedUsers; 
-    } else {
-      const newUserWithId = { 
-        ...newUser, 
-        id: `u${Date.now()}`,
-        workouts: [] 
-      };
-      setUsers([...users, newUserWithId]);
-      mockDatabase.users.push(newUserWithId); 
-    }
+    setIsLoading(true);
+    try {
+      if (editingId) {
+        await api.put(`/users/${editingId}`, {
+          nome: newUser.nome,
+          senha: newUser.senha
+        });
+      } else {
+        await api.post('/users/register', newUser);
+      }
 
-    setNewUser({ name: '', email: '', password: '', type: 'user' });
-    setEditingId(null);
+      const response = await api.get('/users');
+      setUsers(response.data);
+      
+      setNewUser({ nome: '', senha: '', tipo_usuario: 'usuario' });
+      setEditingId(null);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 
+        (err.response?.status === 403 
+          ? 'Apenas administradores podem criar outros administradores' 
+          : 'Erro ao salvar usuário');
+      
+      setError(errorMessage);
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEdit = (user) => {
-    setNewUser(user);
+    setNewUser({
+      nome: user.nome,
+      senha: '',
+      tipo_usuario: user.tipo_usuario
+    });
     setEditingId(user.id);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
-      const updatedUsers = users.filter(user => user.id !== id);
-      setUsers(updatedUsers);
-      mockDatabase.users = updatedUsers; 
-      
-
-      mockDatabase.workouts = mockDatabase.workouts.filter(
-        workout => workout.userId !== id
-      );
-      
-
-      mockDatabase.schedules = mockDatabase.schedules.filter(
-        schedule => schedule.userId !== id
-      );
+      setIsLoading(true);
+      try {
+        await api.delete(`/users/${id}`);
+        const response = await api.get('/users');
+        setUsers(response.data);
+      } catch (err) {
+        setError(err.response?.data?.message || err.message);
+        alert(err.response?.data?.message || 'Erro ao excluir usuário');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleTypeChange = (userId, newType) => {
-    const updatedUsers = users.map(user =>
-      user.id === userId ? { ...user, type: newType } : user
-    );
-    setUsers(updatedUsers);
-    mockDatabase.users = updatedUsers;
+  const handleTypeChange = async (userId, newType) => {
+    if (currentUserType !== 'admin') {
+      alert('Apenas administradores podem alterar tipos de usuário');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await api.patch(`/users/${userId}`, { 
+        tipo_usuario: newType 
+      });
+      const response = await api.get('/users');
+      setUsers(response.data);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (currentUserType !== 'admin') {
+    return <div className="error">Acesso restrito a administradores</div>;
+  }
+
+  if (isLoading) return <div className="loading">Carregando...</div>;
+  if (error) return <div className="error">Erro: {error}</div>;
 
   return (
     <div className="users-container">
@@ -87,9 +132,10 @@ export default function Users() {
       <div className="search-bar">
         <input
           type="text"
-          placeholder="Buscar usuários..."
+          placeholder="Buscar usuários por nome..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          disabled={isLoading}
         />
       </div>
 
@@ -101,51 +147,43 @@ export default function Users() {
             <label>Nome*</label>
             <input
               type="text"
-              placeholder="Nome completo"
-              value={newUser.name}
-              onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+              placeholder="Nome de usuário"
+              value={newUser.nome}
+              onChange={(e) => setNewUser({...newUser, nome: e.target.value})}
               required
+              disabled={isLoading}
             />
           </div>
 
           <div className="form-group">
-            <label>Email*</label>
-            <input
-              type="email"
-              placeholder="email@exemplo.com"
-              value={newUser.email}
-              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Senha* (mínimo 6 caracteres)</label>
+            <label>Senha*{editingId && ' (deixe em branco para manter a atual)'}</label>
             <input
               type="password"
               placeholder="••••••••"
-              value={newUser.password}
-              onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+              value={newUser.senha}
+              onChange={(e) => setNewUser({...newUser, senha: e.target.value})}
+              required={!editingId}
               minLength="6"
-              required
+              disabled={isLoading}
             />
           </div>
 
           <div className="form-group">
             <label>Tipo*</label>
             <select
-              value={newUser.type}
-              onChange={(e) => setNewUser({...newUser, type: e.target.value})}
+              value={newUser.tipo_usuario}
+              onChange={(e) => setNewUser({...newUser, tipo_usuario: e.target.value})}
               required
+              disabled={isLoading || currentUserType !== 'admin'}
             >
-              <option value="user">Usuário</option>
+              <option value="usuario">Usuário</option>
               <option value="admin">Administrador</option>
             </select>
           </div>
         </div>
 
         <div className="form-actions">
-          <button onClick={handleAddUser} className="submit-btn">
+          <button onClick={handleAddUser} className="submit-btn" disabled={isLoading}>
             {editingId ? 'Atualizar' : 'Adicionar'} Usuário
           </button>
 
@@ -153,9 +191,10 @@ export default function Users() {
             <button
               onClick={() => {
                 setEditingId(null);
-                setNewUser({ name: '', email: '', password: '', type: 'user' });
+                setNewUser({ nome: '', senha: '', tipo_usuario: 'usuario' });
               }}
               className="cancel-btn"
+              disabled={isLoading}
             >
               Cancelar
             </button>
@@ -169,58 +208,43 @@ export default function Users() {
           <thead>
             <tr>
               <th>Nome</th>
-              <th>Email</th>
               <th>Tipo</th>
-              <th>Treinos</th>
-              <th>Agendamentos</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map(user => {
-              const userWorkouts = mockDatabase.workouts.filter(
-                workout => workout.userId === user.id
-              ).length;
-              
-              const userSchedules = mockDatabase.schedules.filter(
-                schedule => schedule.userId === user.id
-              ).length;
-              
-              return (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <select
-                      value={user.type}
-                      onChange={(e) => handleTypeChange(user.id, e.target.value)}
-                      className={`type-select ${user.type}`}
-                      disabled={user.email === 'admin@academia.com'}
-                    >
-                      <option value="user">Usuário</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                  </td>
-                  <td>{userWorkouts}</td>
-                  <td>{userSchedules}</td>
-                  <td className="actions">
-                    <button 
-                      onClick={() => handleEdit(user)}
-                      className="edit-btn"
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(user.id)}
-                      className="delete-btn"
-                      disabled={user.email === 'admin@academia.com'}
-                    >
-                      Excluir
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {filteredUsers.map(user => (
+              <tr key={user.id}>
+                <td>{user.nome}</td>
+                <td>
+                  <select
+                    value={user.tipo_usuario}
+                    onChange={(e) => handleTypeChange(user.id, e.target.value)}
+                    className={`type-select ${user.tipo_usuario}`}
+                    disabled={isLoading || currentUserType !== 'admin'}
+                  >
+                    <option value="usuario">Usuário</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </td>
+                <td className="actions">
+                  <button 
+                    onClick={() => handleEdit(user)}
+                    className="edit-btn"
+                    disabled={isLoading}
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(user.id)}
+                    className="delete-btn"
+                    disabled={isLoading || (user.tipo_usuario === 'admin' && currentUserType !== 'admin')}
+                  >
+                    Excluir
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
